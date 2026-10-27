@@ -1,0 +1,47 @@
+## Debug-kernel Android boot: the damage reaches ueventd, init_user0 fails and init reboots into the recovery partition
+## With the debug kernel the poisoned memory absorbed the damage at the apexd stage, but at 15.58 s ueventd is hit ('Invalid object pointer' in the slab, then an oops in
+## its context) and gets SIGSEGV; vold then waits for device links that ueventd would have created, 'vdc cryptfs init_user0' fails and init reboots into recovery with reason
+## init_user0_failed (it also writes '--prompt_and_wipe_data --reason=init_user0_failed' to the bootloader message in 'misc', which is why the phone kept going to recovery
+## and a stock recovery would then offer 'Factory data reset'; see docs/en/4-fix.md). The last line is the warm reset that the debug image asked for.
+
+[   15.584685] BUG kmalloc-256 (Tainted: G S  B          ): Invalid object pointer 0x0000000050d1a8e0
+[   15.584691] -----------------------------------------------------------------------------
+[   15.584691] 
+[   15.584700] INFO: Slab 0x000000008f497f8a objects=21 used=16 fp=0x00000000d7d04727 flags=0x4000000000010201
+[   15.584709] CPU: 7 PID: 508 Comm: ueventd Tainted: G S  B           4.14.356-openela-rc1-VantomKernel #1
+## [...]
+[   15.594776] init: Service 'ueventd' (pid 508) received SIGSEGV
+[   15.594863] init: Sending SIGKILL to service 'ueventd' (pid 508) process group...
+
+[   38.445096] init: starting service 'exec 7 (/system/bin/vdc --wait cryptfs init_user0)'...
+[   38.455212] init: Activation of cgroup controller +memory failed in path /sys/fs/cgroup/system/uid_0: Invalid argument
+[   38.457764] init: ... started service 'exec 7 (/system/bin/vdc --wait cryptfs init_user0)' has pid 807
+[   38.457830] init: SVC_EXEC service 'exec 7 (/system/bin/vdc --wait cryptfs init_user0)' pid 807 (uid 0 gid 0+0 context default) started; waiting...
+[   38.484159] libbinder.BackendUnifiedServiceManager: Thread Pool max thread count is 0. Cannot cache binder as linkToDeath cannot be implemented. serviceName: vold
+[   38.484209] vdc: Waited 0ms for vold
+[   38.487781] cutils: Failed to mkdir(/data/misc/vold/user_keys): No such file or directory
+[   38.487942] vold: Failed to prepare /data/misc/vold/user_keys: No such file or directory
+[   38.488281] vdc: Command: cryptfs init_user0 Failed: Status(-8, EX_SERVICE_SPECIFIC): '0: '
+[   38.489943] init: Service 'exec 7 (/system/bin/vdc --wait cryptfs init_user0)' (pid 807) exited with status 25 waiting took 0.035000 seconds
+[   38.490008] init: Sending SIGKILL to service 'exec 7 (/system/bin/vdc --wait cryptfs init_user0)' (pid 807) process group...
+[   38.490526] libprocessgroup: Removed cgroup /sys/fs/cgroup/system/uid_0/pid_807
+[   38.490691] init: Exec service failed, status 25: Rebooting into recovery, reason: init_user0_failed
+[   38.490708] init: Rebooting into recovery
+[   38.491364] init: [libfstab] dt_fstab: Skip disabled entry for partition vendor
+[   38.495034] init: Got shutdown_command 'reboot,recovery' Calling HandlePowerctlMessage()
+[   38.497666] init: [libfstab] dt_fstab: Skip disabled entry for partition vendor
+[   38.499724] init: Clear action queue and start shutdown trigger
+[   38.499807] init: Entering shutdown mode
+[   38.499948] init: processing action (shutdown_done) from (<Builtin Action>:0)
+[   38.499967] init: Reboot start, reason: reboot,recovery, reboot_target: recovery
+[   38.499999] init: Clean shutdown timeout: 6000 ms
+[   38.500018] init: Starting RebootMonitorThread
+[   38.500459] init: RebootMonitorThread started for 300s
+[   38.501855] init: Recovering persistent properties from memory: Unable to read persistent property file: open() failed: No such file or directory
+[   38.510970] init: powerctl_shutdown_time_ms:10:1
+[   38.511013] init: Reboot ending, jumping to kernel
+[   38.512953] sd 0:0:0:5: [sdf] Synchronizing SCSI cache
+[   38.513540] sd 0:0:0:0: [sda] Synchronizing SCSI cache
+[   38.563155] reboot: Restarting system with command 'recovery'
+[   38.563190] Going down for restart now
+[   38.563207] Forcing a warm reset of the system

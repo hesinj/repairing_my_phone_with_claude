@@ -1,0 +1,114 @@
+## KASAN: double-free or invalid-free in drv260x_probe
+## Debug kernel (KASAN + SLUB debugging) Android boot, 8.33 s. The probe fails (I2C error -71) and its error path calls kfree() on the pointer it got from
+## devm_kmalloc() at drv260x_probe+0x54. That pointer is 128 bytes INSIDE the 512-byte object (see 'located 128 bytes inside'): devm memory sits behind a header, so
+## this is a free of a pointer that is not the start of the allocation, and the driver core frees the real object when the probe fails (see file 03).
+## 'Allocated by' (devm_kmalloc <- drv260x_probe+0x54) and 'BUG ... in drv260x_probe+0x724' (kfree) are the two lines that matter.
+
+[    8.330535] drv260x_input(as input_haptics): drv260x probe, i2c address= 5a
+[    8.332171] input: qti-haptics as /devices/platform/soc/890000.i2c/i2c-3/3-005a/input/input2
+[    8.333425] drv260x-haptics 3-005a: No cache used with register defaults set!
+[    8.333502] drv260x_input(as input_haptics): drv260x_init start...
+[    8.333611] i2c_geni 890000.i2c: Bus arbitration lost, clock line undriveable
+[    8.333710] i2c_geni 890000.i2c: Bus proto err, noisy/unepxected start/stop
+[    8.333814] i2c_geni 890000.i2c: Bus arbitration lost, clock line undriveable
+[    8.333901] i2c_geni 890000.i2c: Bus proto err, noisy/unepxected start/stop
+[    8.333988] drv260x-haptics 3-005a: Failed to read  register[0x01]: -71
+[    8.334013] drv260x-haptics 3-005a: Device init failed: -71
+[    8.334032] ==================================================================
+[    8.334069] BUG: KASAN: double-free or invalid-free in drv260x_probe+0x724/0xaf0
+[    8.334082] 
+[    8.334108] CPU: 5 PID: 251 Comm: kworker/u16:8 Tainted: G S              4.14.356-openela-rc1-VantomKernel #1
+[    8.334124] Hardware name: Qualcomm Technologies, Inc. SDMMAGPIE PM6150 TOCO (DT)
+[    8.334158] Workqueue: events_unbound async_run_entry_fn
+[    8.334177] Call trace:
+[    8.334199]  dump_backtrace+0x0/0x224
+[    8.334218]  show_stack+0x14/0x1c
+[    8.334241]  dump_stack+0xc0/0xfc
+[    8.334265]  print_address_description+0x80/0x2d8
+[    8.334284]  kasan_report_invalid_free+0xa0/0x11c
+[    8.334302]  __kasan_slab_free+0xdc/0x214
+[    8.334319]  kasan_slab_free+0x10/0x1c
+[    8.334337]  kfree+0x100/0x7fc
+[    8.334356]  drv260x_probe+0x724/0xaf0
+[    8.334375]  i2c_device_probe+0x230/0x27c
+[    8.334399]  driver_probe_device+0x5e8/0x630
+[    8.334419]  __device_attach_driver+0x1c8/0x1ec
+[    8.334438]  bus_for_each_drv+0xa4/0xf8
+[    8.334456]  __device_attach+0x104/0x1ac
+[    8.334475]  device_initial_probe+0x10/0x18
+[    8.334493]  bus_probe_device+0x50/0xe8
+[    8.334511]  device_add+0x87c/0xba4
+[    8.334528]  device_register+0x1c/0x28
+[    8.334547]  i2c_new_device+0x300/0x320
+[    8.334566]  of_i2c_register_devices+0x218/0x264
+[    8.334585]  i2c_register_adapter+0x2b8/0x398
+[    8.334603]  i2c_add_adapter+0x118/0x190
+[    8.334621]  geni_i2c_probe+0x694/0x6e0
+[    8.334639]  platform_drv_probe+0x88/0xe4
+[    8.334658]  driver_probe_device+0x5e8/0x630
+[    8.334677]  __driver_attach+0x114/0x148
+[    8.334695]  bus_for_each_dev+0xa8/0xfc
+[    8.334713]  driver_attach+0x30/0x3c
+[    8.334732]  driver_attach_async+0xc/0x14
+[    8.334751]  async_run_entry_fn+0x88/0x248
+[    8.334774]  process_one_work+0x3b8/0x828
+[    8.334792]  worker_thread+0x52c/0x96c
+[    8.334810]  kthread+0x194/0x1b4
+[    8.334828]  ret_from_fork+0x10/0x18
+[    8.334840] 
+[    8.334856] Allocated by task 251:
+[    8.334876]  __kasan_kmalloc+0xf0/0x1b4
+[    8.334895]  kasan_slab_alloc+0x14/0x1c
+[    8.334913]  __kmalloc_track_caller+0x170/0x304
+[    8.334932]  devm_kmalloc+0x24/0x88
+[    8.334951]  drv260x_probe+0x54/0xaf0
+[    8.334970]  i2c_device_probe+0x230/0x27c
+[    8.334990]  driver_probe_device+0x5e8/0x630
+[    8.335009]  __device_attach_driver+0x1c8/0x1ec
+[    8.335028]  bus_for_each_drv+0xa4/0xf8
+[    8.335047]  __device_attach+0x104/0x1ac
+[    8.335066]  device_initial_probe+0x10/0x18
+[    8.335084]  bus_probe_device+0x50/0xe8
+[    8.335102]  device_add+0x87c/0xba4
+[    8.335120]  device_register+0x1c/0x28
+[    8.335138]  i2c_new_device+0x300/0x320
+[    8.335158]  of_i2c_register_devices+0x218/0x264
+[    8.335177]  i2c_register_adapter+0x2b8/0x398
+[    8.335195]  i2c_add_adapter+0x118/0x190
+[    8.335213]  geni_i2c_probe+0x694/0x6e0
+[    8.335230]  platform_drv_probe+0x88/0xe4
+[    8.335249]  driver_probe_device+0x5e8/0x630
+[    8.335268]  __driver_attach+0x114/0x148
+[    8.335286]  bus_for_each_dev+0xa8/0xfc
+[    8.335305]  driver_attach+0x30/0x3c
+[    8.335323]  driver_attach_async+0xc/0x14
+[    8.335342]  async_run_entry_fn+0x88/0x248
+[    8.335361]  process_one_work+0x3b8/0x828
+[    8.335380]  worker_thread+0x52c/0x96c
+[    8.335397]  kthread+0x194/0x1b4
+[    8.335415]  ret_from_fork+0x10/0x18
+[    8.335433]  0xffffffffffffffff
+[    8.335445] 
+[    8.335458] Freed by task 0:
+[    8.335471] (stack is not available)
+[    8.335483] 
+[    8.335502] The buggy address belongs to the object at ffffffc1a85a2880
+[    8.335502]  which belongs to the cache kmalloc-512 of size 512
+[    8.335526] The buggy address is located 128 bytes inside of
+[    8.335526]  512-byte region [ffffffc1a85a2880, ffffffc1a85a2a80)
+[    8.335546] The buggy address belongs to the page:
+[    8.335566] page:ffffffbf06a16800 count:1 mapcount:0 mapping:ffffffc1b500c680 index:0xffffffc1a85a1c80 compound_mapcount: 0
+[    8.335597] flags: 0x4000000000010200(slab|head)
+[    8.335624] raw: 4000000000010200 ffffffbf06a1de08 ffffffc1b5003a10 ffffffc1b500c680
+[    8.335647] raw: ffffffc1a85a1c80 0000000000200010 00000001ffffffff 0000000000000000
+[    8.335661] page dumped because: kasan: bad access detected
+[    8.335674] 
+[    8.335686] Memory state around the buggy address:
+[    8.335705]  ffffffc1a85a2800: fc fc fc fc fc fc fc fc fc fc fc fc fc fc fc fc
+[    8.335723]  ffffffc1a85a2880: 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00
+[    8.335741] >ffffffc1a85a2900: 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00
+[    8.335755]                    ^
+[    8.335773]  ffffffc1a85a2980: 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00
+[    8.335791]  ffffffc1a85a2a00: 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00
+[    8.335806] ==================================================================
+[    8.336864] drv260x-haptics: probe of 3-005a failed with error -71

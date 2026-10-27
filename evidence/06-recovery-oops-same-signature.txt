@@ -1,0 +1,36 @@
+## The custom recovery died of the same corruption (6.6 s, process 'recovery', allocator function at the top)
+## Boot of the recovery that was built for this phone, the console saved by the next boot. The 'virtual address' (eeb0c2a703fb4d93) is not a kernel address: it is the
+## first 8 bytes of a FREE kmalloc object, overwritten with high-entropy data; the allocator took the object from its free list and found garbage (x8 = x9 = that value).
+## The haptics probe of this very boot failed at 2.02 s (see 01, Part B).
+
+[    6.623179] erofs: (device dm-1): mounted with opts: (null), root inode @ nid 51.
+[    6.627087] erofs: (device dm-3): erofs_parse_options: Unrecognized mount option "barrier=1" or missing value
+[    6.627238] erofs: (device dm-3): mounted with opts: (null), root inode @ nid 39.
+[    6.627945] Unable to handle kernel paging request at virtual address eeb0c2a703fb4d93
+[    6.627953] Mem abort info:
+[    6.627957]   Exception class = DABT (current EL), IL = 32 bits
+[    6.627961]   SET = 0, FnV = 0
+[    6.627965]   EA = 0, S1PTW = 0
+[    6.627969]   FSC = 4
+[    6.627973] Data abort info:
+[    6.627977]   ISV = 0, ISS = 0x00000004
+[    6.627980]   CM = 0, WnR = 0
+[    6.627984] [eeb0c2a703fb4d93] address between user and kernel address ranges
+[    6.627991] Internal error: Oops: 96000004 [#1] PREEMPT SMP
+[    6.627996] Modules linked in:
+[    6.628003] Process recovery (pid: 515, stack limit = 0x000000000b74a3ef)
+[    6.628011] CPU: 1 PID: 515 Comm: recovery Tainted: G S              4.14.356-openela-rc1-VantomKernel #1
+[    6.628015] Hardware name: Qualcomm Technologies, Inc. SDMMAGPIE PM6150 TOCO (DT)
+[    6.628020] task: 000000003f529800 task.stack: 000000000b74a3ef
+[    6.628030] pc : __kmalloc_track_caller+0xac/0x2e0
+[    6.628035] lr : __kmalloc_track_caller+0x3c/0x2e0
+[    6.628039] sp : ffffff801b28ba10 pstate : 60400145
+[    6.628043] x29: ffffff801b28ba20 x28: ffffff8154380824 
+[    6.628048] x27: ffffffdea5d7d400 x26: ffffff801b28bb38 
+[    6.628054] x25: ffffff801b28bb20 x24: ffffff815407d2f8 
+[    6.628059] x23: 0000000000000141 x22: ffffffdea5d7d400 
+[    6.628065] x21: ffffff815407d2f8 x20: 00000000015102c0 
+[    6.628070] x19: 0000000000000200 x18: 0000007d18992000 
+[    6.628076] x17: 0000007d119ee510 x16: ffffff8152e9ebe8 
+[    6.628081] x15: 000000004228a473 x14: 00007fcbb8b24100 
+[    6.628087] x13: 0000005d66a60000 x12: ffffff8154cf2780 

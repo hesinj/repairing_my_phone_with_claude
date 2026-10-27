@@ -1,0 +1,80 @@
+## A normal Android boot (the installed boot image, no debug options): the heap corruption kills apexd
+## Saved console of that boot (0.6 s: the failed haptics probe, see 01). At 2.552 s init starts 'apexd --bootstrap'. At 2.688 s the firmware callback overwrites memory;
+## a kworker that uses the haptics regmap mutex faults on a garbage pointer, and at 2.784 s apexd faults in the allocator (__kmalloc) with another garbage pointer.
+## init then reboots into the bootloader with reason bootstrap-apexd-failed (that reason is what /metadata/bootstat showed). 'f38d247d14df30b8' and
+## '7397247d14df30c7' share the bytes 247d14df30: it is the same firmware data written over free and live objects.
+
+[    2.552763] apexd: Started. subcommand = --bootstrap
+[    2.553249] apexd-bootstrap: Scanning /system/apex for pre-installed ApexFiles
+[    2.553369] apexd-bootstrap: Found pre-installed APEX /system/apex/com.android.adbd.capex
+
+[    2.688171] Unable to handle kernel paging request at virtual address f38d247d14df30b8
+[    2.688175] Mem abort info:
+[    2.688179]   Exception class = DABT (current EL), IL = 32 bits
+[    2.688183]   SET = 0, FnV = 0
+[    2.688187]   EA = 0, S1PTW = 0
+[    2.688190]   FSC = 4
+[    2.688193] Data abort info:
+[    2.688197]   ISV = 0, ISS = 0x00000004
+[    2.688200]   CM = 0, WnR = 0
+[    2.688204] [f38d247d14df30b8] address between user and kernel address ranges
+[    2.688211] Internal error: Oops: 96000004 [#1] PREEMPT SMP
+[    2.688216] Modules linked in:
+[    2.688224] Process kworker/2:1 (pid: 103, stack limit = 0x00000000a9fb6fdf)
+[    2.688231] CPU: 2 PID: 103 Comm: kworker/2:1 Tainted: G S              4.14.356-openela-rc1-VantomKernel #1
+[    2.688236] Hardware name: Qualcomm Technologies, Inc. SDMMAGPIE PM6150 TOCO (DT)
+[    2.688250] Workqueue: events request_firmware_work_func
+[    2.688256] task: 000000005c692c71 task.stack: 00000000a9fb6fdf
+[    2.688264] pc : __mutex_lock+0xac/0x640
+[    2.688269] lr : __mutex_lock+0xa0/0x640
+[    2.688273] sp : ffffff8011ff3c40 pstate : 80c00145
+[    2.688276] x29: ffffff8011ff3c70 x28: 0000000000000402 
+[    2.688282] x27: 00000000fffffef7 x26: fffffff2f0f11c00 
+[    2.688287] x25: 00000000fb767b05 x24: 0000000000000000 
+[    2.688293] x23: fffffff2f0d9c210 x22: 0000000000000099 
+[    2.688298] x21: fffffff2f0f11c00 x20: 0000000000000002 
+## [...] registers left out
+[    2.688484] 3c20  ffffffff ffffffff 11ff3d20 ffffff80 11ff3c70 ffffff80 5b381ee8 ffffff83
+[    2.688496] 3c40  ffffffc8 00000000 29affa00 fcf3a0ae 11ff3d10 ffffff80 59d3434c ffffff83
+[    2.688507] 3c60  00000000 00000000 29affa00 fcf3a0ae 11ff3cc0 ffffff80 5b381870 ffffff83
+[    2.688519] 
+[    2.688523] Call trace:
+[    2.688528]  __mutex_lock+0xac/0x640
+[    2.688533]  __mutex_lock_slowpath+0x10/0x18
+[    2.688538]  mutex_lock+0x30/0x38
+[    2.688543]  regmap_lock_mutex+0xc/0x14
+[    2.688549]  regmap_write+0x44/0x78
+[    2.688556]  HapticsFirmwareLoad+0x1c8/0x2c8
+[    2.688560]  request_firmware_work_func+0x44/0x8c
+[    2.688568]  process_one_work+0x1d0/0x4b4
+[    2.688573]  worker_thread+0x2f8/0x670
+[    2.688577]  kthread+0x1b4/0x1c4
+[    2.688583]  ret_from_fork+0x10/0x18
+[    2.688590] Code: 97a73696 f9400268 f27df108 54000480 (b9408116) 
+[    2.688595] ---[ end trace 898a2c9763a22dd5 ]---
+[    2.688600] note: kworker/2:1[103] exited with preempt_count 1
+
+[    2.784122] Unable to handle kernel paging request at virtual address 7397247d14df30c7
+[    2.784135] Mem abort info:
+[    2.784139]   Exception class = DABT (current EL), IL = 32 bits
+[    2.784143]   SET = 0, FnV = 0
+[    2.784147]   EA = 0, S1PTW = 0
+[    2.784150]   FSC = 4
+[    2.784153] Data abort info:
+[    2.784157]   ISV = 0, ISS = 0x00000004
+[    2.784160]   CM = 0, WnR = 0
+[    2.784165] [7397247d14df30c7] address between user and kernel address ranges
+[    2.784171] Internal error: Oops: 96000004 [#2] PREEMPT SMP
+[    2.784176] Modules linked in:
+[    2.784183] Process apexd (pid: 504, stack limit = 0x00000000c61e37af)
+[    2.784191] CPU: 2 PID: 504 Comm: apexd Tainted: G S    D         4.14.356-openela-rc1-VantomKernel #1
+[    2.784196] Hardware name: Qualcomm Technologies, Inc. SDMMAGPIE PM6150 TOCO (DT)
+[    2.784200] task: 000000008b3aa64d task.stack: 00000000c61e37af
+[    2.784210] pc : __kmalloc+0xb4/0x31c
+[    2.784218] lr : __alloc_workqueue_key+0x88/0x4bc
+## [...] registers and most of the call trace left out
+[    2.784514]  SyS_ioctl+0x98/0xa4
+[    2.784521]  el0_svc_naked+0x34/0x38
+[    2.784527] Code: b4000928 b9802009 f9406c0b 8b090109 (f940012a) 
+[    2.784533] ---[ end trace 898a2c9763a22dd6 ]---
+[    2.785670] apexd: 43 output lines suppressed due to ratelimiting

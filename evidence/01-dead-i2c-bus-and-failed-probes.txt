@@ -1,0 +1,48 @@
+## The I2C bus 3 (890000.i2c) does not answer; the haptics chip (0x5a) and the flash-LED chip (0x63) both fail to probe
+## Part A: a normal Android boot with the phone's own, unmodified boot image (kernel console saved by the recovery that was booted next; probe at 0.6 s).
+## Part B: the same failure in the recovery built for this phone (2.0 s). Part C: the debug-kernel Android boot (the same lines, plus the flash-LED chip).
+## Kernel 4.14.356-openela-rc1-VantomKernel (PixelOS), board SDMMAGPIE PM6150 TOCO. Nothing is edited except the lines that are left out.
+
+## Part A: normal Android boot
+[    0.595238] drv260x_input(as input_haptics): drv260x probe, i2c address= 5a
+[    0.595415] input: qti-haptics as /devices/platform/soc/890000.i2c/i2c-3/3-005a/input/input2
+[    0.595467] drv260x-haptics 3-005a: No cache used with register defaults set!
+[    0.595474] drv260x_input(as input_haptics): drv260x_init start...
+[    0.595518] i2c_geni 890000.i2c: Bus arbitration lost, clock line undriveable
+[    0.595564] i2c_geni 890000.i2c: Bus proto err, noisy/unepxected start/stop
+[    0.595616] i2c_geni 890000.i2c: Bus arbitration lost, clock line undriveable
+[    0.595657] i2c_geni 890000.i2c: Bus proto err, noisy/unepxected start/stop
+[    0.595695] drv260x-haptics 3-005a: Failed to read  register[0x01]: -71
+[    0.595704] drv260x-haptics 3-005a: Device init failed: -71
+[    0.595854] drv260x-haptics: probe of 3-005a failed with error -71
+
+[    1.408064] i2c_geni 890000.i2c: Bus arbitration lost, clock line undriveable
+[    1.408116] i2c_geni 890000.i2c: Bus proto err, noisy/unepxected start/stop
+[    1.408172] i2c_geni 890000.i2c: Bus arbitration lost, clock line undriveable
+
+## Part B: custom recovery boot
+[    2.019557] drv260x_input(as input_haptics): drv260x probe, i2c address= 5a
+[    2.019728] input: qti-haptics as /devices/platform/soc/890000.i2c/i2c-3/3-005a/input/input2
+[    2.019778] drv260x-haptics 3-005a: No cache used with register defaults set!
+[    2.019785] drv260x_input(as input_haptics): drv260x_init start...
+[    2.019826] i2c_geni 890000.i2c: Bus arbitration lost, clock line undriveable
+[    2.019873] i2c_geni 890000.i2c: Bus proto err, noisy/unepxected start/stop
+[    2.019923] i2c_geni 890000.i2c: Bus arbitration lost, clock line undriveable
+[    2.019962] i2c_geni 890000.i2c: Bus proto err, noisy/unepxected start/stop
+[    2.019996] drv260x-haptics 3-005a: Failed to read  register[0x01]: -71
+[    2.020005] drv260x-haptics 3-005a: Device init failed: -71
+[    2.020170] drv260x-haptics: probe of 3-005a failed with error -71
+
+## Part C: debug-kernel Android boot, flash-LED chip on the same bus
+[    9.350156] leds-aw3644 3-0063: No protect time specified for IR mode
+[    9.350235] leds-aw3644 3-0063: Unable to acquire pinctrl
+[    9.360168] [ds28e16] DS28E16_standard_cmd_flow: DS28E16_standard_cmd_flow: len error!
+[    9.360303] [ds28e16] DS28E16_cmd_computeS_Secret: computeS_Secret:
+[    9.360353] [ds28e16] DS28E16_cmd_computeS_Secret: 23 3c e4 08 aa aa aa aa aa aa aa aa aa aa aa aa aa aa aa aa aa aa aa aa aa aa aa aa aa aa aa aa aa aa aa
+[    9.360365] [ds28e16] DS28E16_standard_cmd_flow: DS28E16_standard_cmd_flow start
+[    9.364127] i2c_geni 890000.i2c: Bus arbitration lost, clock line undriveable
+[    9.364228] i2c_geni 890000.i2c: Bus proto err, noisy/unepxected start/stop
+[    9.364334] i2c_geni 890000.i2c: Bus arbitration lost, clock line undriveable
+[    9.364426] i2c_geni 890000.i2c: Bus proto err, noisy/unepxected start/stop
+[    9.364501] leds-aw3644 3-0063: Failed to read REG_DEVICE_ID register
+[    9.364608] leds-aw3644: probe of 3-0063 failed with error -71

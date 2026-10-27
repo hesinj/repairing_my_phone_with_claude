@@ -1,0 +1,116 @@
+## KASAN: use-after-free in HapticsFirmwareLoad (a write of 20 bytes into the freed object)
+## The failed probe had queued a request_firmware_nowait() callback. At 14.2 s ueventd serves /vendor/firmware/drv2604.bin and the callback copies the firmware
+## into the object that was freed at 8.33 s (and may belong to somebody else by now). 'Freed by ... release_nodes <- devres_release_all <- driver_probe_device' is the
+## release of the device resources at the failed probe; 'Allocated by ... drv260x_probe+0x54' is the same object as in the double free.
+
+[   14.220577] ueventd: firmware: loading 'drv2604.bin' for '/devices/platform/soc/890000.i2c/i2c-3/3-005a/firmware/drv2604.bin'
+[   14.224231] ueventd: found /vendor/firmware/drv2604.bin for /devices/platform/soc/890000.i2c/i2c-3/3-005a/firmware/drv2604.bin
+[   14.224447] ueventd: loading /devices/platform/soc/890000.i2c/i2c-3/3-005a/firmware/drv2604.bin took 3ms
+[   14.228920] ==================================================================
+[   14.228969] BUG: KASAN: use-after-free in HapticsFirmwareLoad+0x5c/0x528
+[   14.228988] Write of size 20 at addr ffffffc1a85a2a18 by task kworker/3:1/180
+[   14.229001] 
+[   14.229024] CPU: 3 PID: 180 Comm: kworker/3:1 Tainted: G S  B           4.14.356-openela-rc1-VantomKernel #1
+[   14.229040] Hardware name: Qualcomm Technologies, Inc. SDMMAGPIE PM6150 TOCO (DT)
+[   14.229069] Workqueue: events request_firmware_work_func
+[   14.229088] Call trace:
+[   14.229111]  dump_backtrace+0x0/0x224
+[   14.229129]  show_stack+0x14/0x1c
+[   14.229150]  dump_stack+0xc0/0xfc
+[   14.229171]  print_address_description+0x80/0x2d8
+[   14.229189]  __kasan_report+0x190/0x20c
+[   14.229207]  kasan_report+0x10/0x18
+[   14.229225]  check_memory_region+0x1d0/0x1d8
+[   14.229242]  memcpy+0x4c/0x6c
+[   14.229261]  HapticsFirmwareLoad+0x5c/0x528
+[   14.229279]  request_firmware_work_func+0xa4/0x110
+[   14.229301]  process_one_work+0x3b8/0x828
+[   14.229319]  worker_thread+0x52c/0x96c
+[   14.229336]  kthread+0x194/0x1b4
+[   14.229353]  ret_from_fork+0x10/0x18
+[   14.229365] 
+[   14.229380] Allocated by task 251:
+[   14.229400]  __kasan_kmalloc+0xf0/0x1b4
+[   14.229418]  kasan_slab_alloc+0x14/0x1c
+[   14.229436]  __kmalloc_track_caller+0x170/0x304
+[   14.229456]  devm_kmalloc+0x24/0x88
+[   14.229474]  drv260x_probe+0x54/0xaf0
+[   14.229494]  i2c_device_probe+0x230/0x27c
+[   14.229515]  driver_probe_device+0x5e8/0x630
+[   14.229534]  __device_attach_driver+0x1c8/0x1ec
+[   14.229553]  bus_for_each_drv+0xa4/0xf8
+[   14.229572]  __device_attach+0x104/0x1ac
+[   14.229590]  device_initial_probe+0x10/0x18
+[   14.229609]  bus_probe_device+0x50/0xe8
+[   14.229626]  device_add+0x87c/0xba4
+[   14.229644]  device_register+0x1c/0x28
+[   14.229662]  i2c_new_device+0x300/0x320
+[   14.229682]  of_i2c_register_devices+0x218/0x264
+[   14.229700]  i2c_register_adapter+0x2b8/0x398
+[   14.229719]  i2c_add_adapter+0x118/0x190
+[   14.229736]  geni_i2c_probe+0x694/0x6e0
+[   14.229754]  platform_drv_probe+0x88/0xe4
+[   14.229773]  driver_probe_device+0x5e8/0x630
+[   14.229791]  __driver_attach+0x114/0x148
+[   14.229809]  bus_for_each_dev+0xa8/0xfc
+[   14.229828]  driver_attach+0x30/0x3c
+[   14.229846]  driver_attach_async+0xc/0x14
+[   14.229867]  async_run_entry_fn+0x88/0x248
+[   14.229886]  process_one_work+0x3b8/0x828
+[   14.229904]  worker_thread+0x52c/0x96c
+[   14.229922]  kthread+0x194/0x1b4
+[   14.229939]  ret_from_fork+0x10/0x18
+[   14.229956]  0xffffffffffffffff
+[   14.229968] 
+[   14.229982] Freed by task 251:
+[   14.230000]  __kasan_slab_free+0x140/0x214
+[   14.230018]  kasan_slab_free+0x10/0x1c
+[   14.230034]  kfree+0x100/0x7fc
+[   14.230052]  release_nodes+0x3e0/0x440
+[   14.230069]  devres_release_all+0x88/0xb0
+[   14.230088]  driver_probe_device+0x2c0/0x630
+[   14.230108]  __device_attach_driver+0x1c8/0x1ec
+[   14.230126]  bus_for_each_drv+0xa4/0xf8
+[   14.230145]  __device_attach+0x104/0x1ac
+[   14.230164]  device_initial_probe+0x10/0x18
+[   14.230182]  bus_probe_device+0x50/0xe8
+[   14.230199]  device_add+0x87c/0xba4
+[   14.230217]  device_register+0x1c/0x28
+[   14.230235]  i2c_new_device+0x300/0x320
+[   14.230254]  of_i2c_register_devices+0x218/0x264
+[   14.230273]  i2c_register_adapter+0x2b8/0x398
+[   14.230291]  i2c_add_adapter+0x118/0x190
+[   14.230309]  geni_i2c_probe+0x694/0x6e0
+[   14.230326]  platform_drv_probe+0x88/0xe4
+[   14.230345]  driver_probe_device+0x5e8/0x630
+[   14.230364]  __driver_attach+0x114/0x148
+[   14.230382]  bus_for_each_dev+0xa8/0xfc
+[   14.230400]  driver_attach+0x30/0x3c
+[   14.230419]  driver_attach_async+0xc/0x14
+[   14.230439]  async_run_entry_fn+0x88/0x248
+[   14.230457]  process_one_work+0x3b8/0x828
+[   14.230476]  worker_thread+0x52c/0x96c
+[   14.230493]  kthread+0x194/0x1b4
+[   14.230510]  ret_from_fork+0x10/0x18
+[   14.230526]  0xffffffffffffffff
+[   14.230537] 
+[   14.230555] The buggy address belongs to the object at ffffffc1a85a2880
+[   14.230555]  which belongs to the cache kmalloc-512 of size 512
+[   14.230579] The buggy address is located 408 bytes inside of
+[   14.230579]  512-byte region [ffffffc1a85a2880, ffffffc1a85a2a80)
+[   14.230598] The buggy address belongs to the page:
+[   14.230616] page:ffffffbf06a16800 count:1 mapcount:0 mapping:ffffffc1b500c680 index:0x0 compound_mapcount: 0
+[   14.230644] flags: 0x4000000000010200(slab|head)
+[   14.230668] raw: 4000000000010200 ffffffbf06a14a08 ffffffbf06a1de08 ffffffc1b500c680
+[   14.230690] raw: 0000000000000000 0000000000200020 00000001ffffffff 0000000000000000
+[   14.230704] page dumped because: kasan: bad access detected
+[   14.230716] 
+[   14.230729] Memory state around the buggy address:
+[   14.230747]  ffffffc1a85a2900: fb fb fb fb fb fb fb fb fb fb fb fb fb fb fb fb
+[   14.230764]  ffffffc1a85a2980: fb fb fb fb fb fb fb fb fb fb fb fb fb fb fb fb
+[   14.230782] >ffffffc1a85a2a00: fb fb fb fb fb fb fb fb fb fb fb fb fb fb fb fb
+[   14.230796]                             ^
+[   14.230813]  ffffffc1a85a2a80: fc fc fc fc fc fc fc fc fc fc fc fc fc fc fc fc
+[   14.230831]  ffffffc1a85a2b00: fc fc fc fc fc fc fc fc fc fc fc fc fc fc fc fc
+[   14.230845] ==================================================================
+[   14.230867] drv2604_firmware_load, firmware good, count = 12
