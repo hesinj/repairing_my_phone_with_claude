@@ -7,7 +7,7 @@
  ──────────────────────────────              ─────────────────────────────────────────────────────────────────
  clock line of I2C bus 3 cannot be     +     the probe of the haptics driver fails -> its error path kfree()s memory
  driven; the chips on it (haptics 0x5a,      that came from devm_kmalloc() (which the driver core frees too: double /
- flash LED 0x63) do not answer               invalid free) and a queued firmware load later writes into that memory
+ LED driver 0x63) do not answer              invalid free) and a queued firmware load later writes into that memory
 
                                        =     random kernel memory is overwritten in every boot, from the first seconds
                                              on, by the bytes of /vendor/firmware/drv2604.bin
@@ -75,7 +75,7 @@
 ## برای تعمیرگاه
 
 چه بگویید: «باس I2C شمارهٔ ۳ این برد Snapdragon 730G (نام در کرنل `890000.i2c`، ‏400 kHz) جواب نمی‌دهد. روی آن، با آدرس 0x5a، درایور موتور لرزش (DRV2604) و، با آدرس 0x63،
-درایور LED فلش دوربین (AW3644) است. لاگ کرنل `Bus arbitration lost, clock line undriveable` می‌گوید، یعنی خط ساعت پایین نگه داشته شده یا اتصال کوتاه یا نویزی است.»
+درایور LED با نام AW3644 (چیپ درایور LED فلش/IR) است. لاگ کرنل `Bus arbitration lost, clock line undriveable` می‌گوید، یعنی خط ساعت پایین نگه داشته شده یا اتصال کوتاه یا نویزی است.»
 
 پیشنهادهایی که اینجا **امتحان نشده‌اند** (کسی این گوشی را باز نکرده است):
 

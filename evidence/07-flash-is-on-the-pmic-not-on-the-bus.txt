@@ -1,0 +1,105 @@
+## The phone's flash is driven by the PMIC (SPMI), not by I2C bus 3. Device-tree excerpts (decompiled with dtc) and the matching kernel log lines.
+## Device tree: prebuilt/dtbo.img (sha256 2a89bcd7b432bec6b07afd5b093baad5b0e05e325a3c42158c241dcc9b4bdd47) and prebuilt/dtb
+## (sha256 831d9ffe0b831d44279cb5236998afe7fde83ace728cbb50f5c16319a6fa9b4e) of https://github.com/hesinj/orangefox-toco; the README of that
+## repository says they are byte-identical to the ones in PixelOS's images. dtbo.img holds one overlay (starting at byte 64), dtb one base tree.
+## How: cut each file at the FDT magic d00dfeed (python: data.find(b'\xd0\x0d\xfe\xed')), then `dtc -I dtb -O dts`. In the overlay a reference to a node
+## of the base tree is written 0xffffffff; the `__fixups__` lines of Part B say which base node each reference gets. Tabs are kept; nothing is edited.
+## Kernel log: the saved console pstore-before-boot-32.txt of the black-box recorder (release kernel 4.14.356). CAM_ERR is only the log level of that
+## message; its text says `rc 0`.
+##
+## What this shows: the rear flash and torch nodes take their LEDs from the PM6150L PMIC's flash module; the AW3644 and the camera's i2c_flash devices
+## are on 890000.i2c, the bus that does not answer, and are only an extra `soft-led-flash-src` of the rear sensors. The camera sensors use the CCI.
+## What it does not show: what the extra LED does for the camera, whether it works, or whether a camera app opens the rear cameras with the bus dead.
+
+## Part A: the camera sensors of the overlay. All of them use the camera control interface (CCI); none is on I2C bus 3.
+## [summary of each qcom,cam-sensor@N node; phandle numbers translated to node names with the `phandle` lines of the flash nodes below]
+## The three rear flash labels in the overlay's __symbols__ are led_flash_rear (camera-flash@0), led_flash_rear_macro (@1), led_flash_rear_ultra (@2).
+qcom,cam-sensor@0  roll 90    yaw 180   cci-device 0 cci-master 0   led-flash-src 0x8a (qcom,camera-flash@0)   soft-led-flash-src 0x8b (i2c_flash@64)
+qcom,cam-sensor@1  roll 90    yaw 180   cci-device 0 cci-master 1   (no led-flash-src, no soft-led-flash-src)
+qcom,cam-sensor@2  roll 270   yaw 0     cci-device 0 cci-master 0   (no led-flash-src, no soft-led-flash-src)
+qcom,cam-sensor@3  roll 90    yaw 180   cci-device 1 cci-master 0   led-flash-src 0x9c (qcom,camera-flash@1)   soft-led-flash-src 0x9d (i2c_flash@65)
+qcom,cam-sensor@4  roll 90    yaw 180   cci-device 1 cci-master 0   led-flash-src 0xa4 (qcom,camera-flash@2)   soft-led-flash-src 0xa5 (i2c_flash@66)
+
+## Part B: a rear flash node and where its LEDs come from (the nodes @1 and @2 differ only in cell-index, reg and phandle)
+			qcom,camera-flash@0 {
+				cell-index = <0x00>;
+				reg = <0x00 0x00>;
+				compatible = "qcom,camera-flash";
+				flash-source = <0xffffffff 0xffffffff>;
+				torch-source = <0xffffffff 0xffffffff>;
+				switch-source = <0xffffffff 0xffffffff>;
+				status = "ok";
+				phandle = <0x8a>;
+			};
+		pm6150l_flash0 = "/fragment@72/__overlay__/qcom,camera-flash@0:flash-source:0\0/fragment@72/__overlay__/qcom,camera-flash@1:flash-source:0\0/fragment@72/__overlay__/qcom,camera-flash@2:flash-source:0";
+		pm6150l_flash1 = "/fragment@72/__overlay__/qcom,camera-flash@0:flash-source:4\0/fragment@72/__overlay__/qcom,camera-flash@1:flash-source:4\0/fragment@72/__overlay__/qcom,camera-flash@2:flash-source:4";
+		pm6150l_torch0 = "/fragment@72/__overlay__/qcom,camera-flash@0:torch-source:0\0/fragment@72/__overlay__/qcom,camera-flash@1:torch-source:0\0/fragment@72/__overlay__/qcom,camera-flash@2:torch-source:0";
+		pm6150l_torch1 = "/fragment@72/__overlay__/qcom,camera-flash@0:torch-source:4\0/fragment@72/__overlay__/qcom,camera-flash@1:torch-source:4\0/fragment@72/__overlay__/qcom,camera-flash@2:torch-source:4";
+		pm6150l_switch2 = "/fragment@72/__overlay__/qcom,camera-flash@0:switch-source:0\0/fragment@72/__overlay__/qcom,camera-flash@0:switch-source:4\0/fragment@72/__overlay__/qcom,camera-flash@1:switch-source:0\0/fragment@72/__overlay__/qcom,camera-flash@1:switch-source:4\0/fragment@72/__overlay__/qcom,camera-flash@2:switch-source:0\0/fragment@72/__overlay__/qcom,camera-flash@2:switch-source:4";   [line cut]
+
+## Part B, continued: those labels are in the base tree, in the PM6150L PMIC on the SPMI bus c440000 (not I2C); and the 'flashlight' LED class device
+		flash_led = "/soc/qcom,spmi@c440000/qcom,pm6150l@5/qcom,leds@d300";
+		pm6150l_flash0 = "/soc/qcom,spmi@c440000/qcom,pm6150l@5/qcom,leds@d300/qcom,flash_0";
+		pm6150l_torch0 = "/soc/qcom,spmi@c440000/qcom,pm6150l@5/qcom,leds@d300/qcom,torch_0";
+				qcom,leds@d300 {
+					compatible = "qcom,qpnp-flash-led-v2";
+					status = "okay";
+					reg = <0xd300 0x100>;
+					label = "flash";
+					[... its children qcom,flash_0, flash_1, flash_2, torch_0, torch_1, torch_2 (led:flash_0 ... led:torch_2, triggers flash0_trigger ... torch2_trigger) follow; left out]
+				flash_led {
+
+					qcom,flashlight {
+						label = "flash";
+						qcom,led-name = "flashlight";
+						qcom,max-current = <0x2ee>;
+						qcom,default-led-trigger = "flashlight_trigger";
+						qcom,id = <0x03>;
+					[... the rest of the node; left out]
+
+## Part C: what is on I2C bus 3. fragment@71 and fragment@87 of the overlay both target qupv3_se4_i2c = /soc/i2c@0x890000 = 890000.i2c (`3-xxxx` in the kernel log).
+		qupv3_se4_i2c = "/fragment@71:target:0\0/fragment@87:target:0";
+		qupv3_se4_i2c = "/soc/i2c@0x890000";
+			aw3644@63 {
+				compatible = "leds-aw3644";
+				reg = <0x63>;
+				aw3644,hwen-gpio = <0xffffffff 0x0c 0x00>;
+			};
+			i2c_flash@64 {
+				compatible = "i2c_flash";
+				reg = <0x64>;
+				cell-index = <0x05>;
+				cam_vana-supply = <0x75>;
+				regulator-names = "cam_vana";
+				rgltr-cntrl-support;
+				rgltr-min-voltage = <0x1b7740>;
+				rgltr-max-voltage = <0x1b7740>;
+				rgltr-load-current = <0x2bf20>;
+				pinctrl-names = "cam_default\0cam_suspend";
+				pinctrl-0 = <0x76 0x77 0x78>;
+				pinctrl-1 = <0x79 0x7a 0x78>;
+				phandle = <0x8b>;
+			};
+			drv2605l@5a {
+				compatible = "ti,drv2605l";
+				reg = <0x5a>;
+				drv260x,enable-gpio = <0xffffffff 0x04 0x00>;
+					[... the rest of the node; left out]
+
+## Part D: kernel log of a boot with the bus dead (the haptics probe fails in the same boots, evidence/01). The camera drivers find their sub-modules (the soft
+## flashes, cell index 5 to 7 = i2c_flash@64 to @66) and probe without an I2C error; the AW3644 driver, on the bus, fails. Nothing here says what happens when an app opens a camera.
+[    1.022623] CAM_ERR: CAM-SENSOR: cam_sensor_get_sub_module_index: 101 FXF led flash cell index 5, rc 0
+[    1.022840] CAM_ERR: CAM-SENSOR: cam_sensor_get_sub_module_index: 101 FXF led flash cell index 6, rc 0
+[    1.022912] CAM_ERR: CAM-SENSOR: cam_sensor_get_sub_module_index: 101 FXF led flash cell index 7, rc 0
+[    1.023430] CAM_WARN: CAM-FLASH: cam_get_source_node_info: 34 switch_src_node NULL
+[    1.023496] CAM_WARN: CAM-FLASH: cam_get_source_node_info: 34 switch_src_node NULL
+[    1.023547] CAM_WARN: CAM-FLASH: cam_get_source_node_info: 34 switch_src_node NULL
+## [lines between left out]
+[    1.394957] leds-aw3644 3-0063: No protect time specified for IR mode
+[    1.394965] leds-aw3644 3-0063: Unable to acquire pinctrl
+[    1.408064] i2c_geni 890000.i2c: Bus arbitration lost, clock line undriveable
+[    1.408116] i2c_geni 890000.i2c: Bus proto err, noisy/unepxected start/stop
+[    1.408172] i2c_geni 890000.i2c: Bus arbitration lost, clock line undriveable
+[    1.408216] i2c_geni 890000.i2c: Bus proto err, noisy/unepxected start/stop
+[    1.408249] leds-aw3644 3-0063: Failed to read REG_DEVICE_ID register
+[    1.408325] leds-aw3644: probe of 3-0063 failed with error -71

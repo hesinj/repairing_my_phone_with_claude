@@ -1,6 +1,6 @@
-## The I2C bus 3 (890000.i2c) does not answer; the haptics chip (0x5a) and the flash-LED chip (0x63) both fail to probe
+## The I2C bus 3 (890000.i2c) does not answer; the haptics chip (0x5a) and the AW3644 LED-driver chip (0x63) both fail to probe
 ## Part A: a normal Android boot with the phone's own, unmodified boot image (kernel console saved by the recovery that was booted next; probe at 0.6 s).
-## Part B: the same failure in the recovery built for this phone (2.0 s). Part C: the debug-kernel Android boot (the same lines, plus the flash-LED chip).
+## Part B: the same failure in the recovery built for this phone (2.0 s). Part C: the debug-kernel Android boot (the same lines, plus the AW3644 LED-driver chip).
 ## Kernel 4.14.356-openela-rc1-VantomKernel (PixelOS), board SDMMAGPIE PM6150 TOCO. Nothing is edited except the lines that are left out.
 
 ## Part A: normal Android boot
@@ -33,7 +33,7 @@
 [    2.020005] drv260x-haptics 3-005a: Device init failed: -71
 [    2.020170] drv260x-haptics: probe of 3-005a failed with error -71
 
-## Part C: debug-kernel Android boot, flash-LED chip on the same bus
+## Part C: debug-kernel Android boot, AW3644 LED-driver chip on the same bus
 [    9.350156] leds-aw3644 3-0063: No protect time specified for IR mode
 [    9.350235] leds-aw3644 3-0063: Unable to acquire pinctrl
 [    9.360168] [ds28e16] DS28E16_standard_cmd_flow: DS28E16_standard_cmd_flow: len error!

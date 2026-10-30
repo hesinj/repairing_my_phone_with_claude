@@ -103,7 +103,7 @@ the same reason. The source tree of [hesinj/orangefox-toco](https://github.com/h
 fastboot flash boot boot-original.img
 ```
 
-After a hardware repair of the bus, flash the original and both vibration and the flash LED can work again. Nothing else was changed.
+After a hardware repair of the bus, flash the original and vibration can work again (and the AW3644 LED driver on the bus can start). Nothing else was changed.
 
 ## After a ROM update
 
@@ -114,7 +114,8 @@ the new kernel), and flash it. A kernel that renames the init function makes the
 ## What stops working
 
 * Haptic feedback and the vibration effects (they did not work while the chip was silent anyway).
-* The camera flash LED stays dead: its chip is on the same bus, and the parameter does not touch it.
+* Nothing else is known to stop working. The phone's flash works (the owner's report; the power-management chip drives it, see
+  [2-evidence.md](2-evidence.md)). The AW3644 LED driver on the dead bus fails to start, as it did before the fix; the parameter does not touch it.
 
 ## Did it work?
 

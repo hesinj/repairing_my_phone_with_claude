@@ -13,7 +13,7 @@ and how to undo it. It is one case on one phone; read "Limits" before you copy a
 ## In short
 
 * **What was wrong.** The phone's I2C bus 3 stopped answering at about the time Android stopped booting, 19 October (a hardware fault;
-  the vibration-motor driver chip DRV2604 at address 0x5a and the camera-flash LED chip AW3644 at 0x63 sit on that bus). When its chip
+  the vibration-motor driver chip DRV2604 at address 0x5a and the LED-driver chip AW3644 at 0x63 sit on that bus). When its chip
   does not answer, the kernel's vendor haptics driver (`drv260x`) goes wrong in its error path: it frees device-managed memory by hand
   (KASAN: `double-free or invalid-free`) although the driver core frees it too, and it leaves a queued firmware load behind, which later
   writes the vibration firmware into the freed memory. Every boot therefore corrupts a random piece of kernel memory, and whichever
@@ -21,8 +21,10 @@ and how to undo it. It is one case on one phone; read "Limits" before you copy a
   or storage, a broken ROM: anything but a vibration driver.
 * **The fix.** Tell the kernel not to start that driver: add `initcall_blacklist=drv260x_driver_init` to the kernel command line of the
   `boot` image. Kernel, ramdisk and device tree stay byte-identical; only that one parameter is added.
-* **The price.** Vibration does not work (it did not before either). The camera flash LED, on the same dead bus, stays dead. After a
-  hardware repair, flash the original boot image back to get both.
+* **The price.** Vibration does not work (it did not before either). The phone's flash works (the owner's report): the device tree puts the
+  flash and the torch on the power-management chip, not on the dead bus ([evidence](evidence/07-flash-is-on-the-pmic-not-on-the-bus.txt)). The AW3644 LED driver on the dead bus
+  fails to start, as before; the parameter does not touch it. After a hardware repair, flash the original boot image back to get
+  vibration again.
 * **Evidence that it works.** On the one phone this was found on, Android started to the lock screen on the first try with every file
   intact (`fastboot boot`), and it kept starting after the image was flashed permanently.
 

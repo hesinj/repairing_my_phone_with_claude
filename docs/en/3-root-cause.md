@@ -7,7 +7,7 @@
  ──────────────────────────────              ─────────────────────────────────────────────────────────────────
  clock line of I2C bus 3 cannot be     +     the probe of the haptics driver fails -> its error path kfree()s memory
  driven; the chips on it (haptics 0x5a,      that came from devm_kmalloc() (which the driver core frees too: double /
- flash LED 0x63) do not answer               invalid free) and a queued firmware load later writes into that memory
+ LED driver 0x63) do not answer              invalid free) and a queued firmware load later writes into that memory
 
                                        =     random kernel memory is overwritten in every boot, from the first seconds
                                              on, by the bytes of /vendor/firmware/drv2604.bin
@@ -77,7 +77,7 @@ Not known:
 ## For a repair shop
 
 What to say: "I2C bus 3 of this Snapdragon 730G board (kernel name `890000.i2c`, 400 kHz) does not answer. On it, at address 0x5a, is the
-vibration-motor driver (DRV2604) and, at 0x63, the camera-flash LED driver (AW3644). The kernel log says `Bus arbitration lost, clock line
+vibration-motor driver (DRV2604) and, at 0x63, an LED driver (AW3644, a flash/IR LED driver chip). The kernel log says `Bus arbitration lost, clock line
 undriveable`, so the clock line is held down or shorted, or noisy."
 
 Suggestions that were **not** tried here (nobody has opened this phone):

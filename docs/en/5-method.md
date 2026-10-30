@@ -79,8 +79,11 @@ shop.
 **Is the fix safe to keep?** It changes only the `boot` partition and is undone with one command. Risks: an OTA or a new ROM replaces
 `boot` and the problem returns; the image has no AVB footer, so the bootloader has to stay unlocked.
 
-**Does vibration really not work now?** It did not work before the fix either; the chip is silent. The camera flash LED, on the same bus,
-is dead too.
+**Does vibration really not work now?** It did not work before the fix either; the chip is silent.
+
+**And the flash?** It works (the owner's report). An earlier version of this page said the opposite: the camera flash LED was assumed dead
+because the AW3644 chip, whose name suggests a flash driver, sits on the dead bus. The device tree shows that the phone's flash is driven by
+the power-management chip ([2-evidence.md](2-evidence.md)). A good example of an inference that should have been checked before it was written down.
 
 **Why not fix the driver?** The proper fix is in the driver's error path: do not `kfree()` memory from `devm_kmalloc()`, and do not leave
 a `request_firmware_nowait()` callback queued after a failed probe. The built-in driver is a Xiaomi variant whose source was not read, and

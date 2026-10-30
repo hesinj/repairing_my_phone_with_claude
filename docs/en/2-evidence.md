@@ -42,12 +42,20 @@ drv260x-haptics: probe of 3-005a failed with error -71
 ```
 
 This is in **all seven** saved consoles that were looked at (custom recovery builds, a normal Android boot with the installed, unmodified
-boot image, and the debug-kernel Android boot), always before the first oops, between 0.6 s and 8.3 s depending on the boot. On the same bus the camera
-flash LED driver fails too (`leds-aw3644 3-0063: Failed to read REG_DEVICE_ID register`, `probe ... failed with error -71`), but that
+boot image, and the debug-kernel Android boot), always before the first oops, between 0.6 s and 8.3 s depending on the boot. On the same bus the AWINIC LED driver
+(`leds-aw3644`, address 0x63; the AW3644 is a flash/IR LED driver chip) fails too (`leds-aw3644 3-0063: Failed to read REG_DEVICE_ID register`, `probe ... failed with error -71`), but that
 driver fails politely.
 
 `Bus arbitration lost, clock line undriveable` is the I2C controller (Qualcomm GENI, `890000.i2c`, 400 kHz) saying that it tried to drive
 the clock line and the line did not follow: something holds it. That is a hardware condition, not a software one.
+
+**The phone's flash is not on this bus.** An earlier version of this page took the AW3644 for "the camera flash LED" and said that the flash
+was dead too. That was an inference from the chip's name, not an observation, and it was wrong: the owner reports that the phone's flash works.
+The phone's device tree explains why ([evidence/07](../../evidence/07-flash-is-on-the-pmic-not-on-the-bus.txt)): the three rear flash nodes (`led_flash_rear`,
+`led_flash_rear_macro`, `led_flash_rear_ultra`) take their flash and torch LEDs from the flash module of the PM6150L power-management chip
+(`qcom,qpnp-flash-led-v2`, on the SPMI bus, not on I2C), whereas the AW3644 and the camera's `i2c_flash` devices sit on `890000.i2c` and
+appear only as an extra "soft" flash source (`soft-led-flash-src`) of the three rear camera sensors. What that extra LED does for the
+camera, and whether it works, was not checked.
 
 ## 3. The writer, named by a debug kernel
 
@@ -135,4 +143,7 @@ any single log line, and that is the reason the cause chain is called confirmed 
 * **The source line of the bad `kfree()`.** The public kernel repository has the plain TI `drv260x` driver at the commit that was checked,
   while the built-in driver is a Xiaomi variant (`HapticsFirmwareLoad`, `android_haptics_play`). KASAN gave the offset
   (`drv260x_probe+0x724`); the code was not seen.
+* **Whether the rear cameras and the extra "soft" flash LED work.** The phone's flash works (the owner's report). The camera sensors are on
+  the camera control interface, not on bus 3, but the three rear ones list devices of bus 3 as a soft flash (evidence/07); whether a rear camera
+  opens with the bus dead was not tested.
 * **That every phone with this symptom has this cause.** One phone, one dead bus.
