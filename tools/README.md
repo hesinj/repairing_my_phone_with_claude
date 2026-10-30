@@ -20,6 +20,24 @@ python3 add_cmdline.py BOOT.img OUT.img "initcall_blacklist=drv260x_driver_init"
   Windows (the script replaces backslashes in the paths that the unpacker prints, because `shlex` treats them as escapes), macOS, and the
   current upstream `mkbootimg`.
 
+## patch_softflash.py
+
+Makes the kernel in a boot image report a failed I2C write to the camera's "soft flash" chip as a success, so that the rear camera of a
+phone with a dead I2C bus 3 can open (see [docs/en/6-camera.md](../docs/en/6-camera.md)), and proves that nothing else changed.
+
+```
+python3 patch_softflash.py BOOT.img OUT.img --mkbootimg PATH/TO/mkbootimg
+```
+
+* Same requirements as `add_cmdline.py`. Run it on the output of `add_cmdline.py` to keep the haptics fix in the same image.
+* It finds the two places in the decompressed kernel by pattern (the name `cam_qup_i2c_txdata`, the code that prints it, and the
+  instructions around it), not by fixed offsets; if it does not find exactly two (`--expect`), it writes nothing. It then packs the image
+  again with the original header settings, unpacks the result, and requires that the ramdisk, dtb and command line are byte-identical and that
+  the decompressed kernel differs in exactly the patched words; otherwise it deletes the output and exits with 1.
+* Tested on Linux with the `mkbootimg` of the OrangeFox 12.1 tree on the PixelOS 20260609_1626 boot image after `add_cmdline.py`: it finds
+  the places at 0xcee9e4 and 0xcef048 and produces the same kernel, ramdisk, dtb and command line as the image that was tried on the phone
+  (the compressed kernel bytes differ, because a different compressor was used). Not tried: another kernel build, Windows, macOS.
+
 ## More tools
 
 The diagnosis tools of this case (a read-only diagnosis of the installed Android from a recovery, a RAM stress test, a boot-image repacker

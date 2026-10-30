@@ -13,6 +13,9 @@ that lines were left out.
 | [05-ueventd-killed-and-init-reboots-into-recovery.txt](05-ueventd-killed-and-init-reboots-into-recovery.txt) | The damage reaches `ueventd`; `init_user0` fails; `init` reboots into recovery |
 | [06-recovery-oops-same-signature.txt](06-recovery-oops-same-signature.txt) | The custom recovery dies of the same corruption (a free object's first bytes overwritten) |
 | [07-flash-is-on-the-pmic-not-on-the-bus.txt](07-flash-is-on-the-pmic-not-on-the-bus.txt) | Device tree: the phone's flash and torch are driven by the power-management chip, not by the dead I2C bus; what is on the bus; the camera drivers' log lines |
+| [08-rear-camera-dies-on-the-soft-flash-write.txt](08-rear-camera-dies-on-the-soft-flash-write.txt) | The camera open that fails on the soft-flash write, the HAL crash after it, and the crash counts since 1 July |
+| [09-two-kernel-experiments-on-the-soft-flash.txt](09-two-kernel-experiments-on-the-soft-flash.txt) | Hiding the soft flash makes the HAL abort; reporting its failed write as a success keeps the camera running |
+| [10-cameras-that-are-not-found.txt](10-cameras-that-are-not-found.txt) | Front, macro and ultra-wide: probe and EEPROM errors, the camera service's three devices, the HAL's module record, the depth sensor's CSI errors |
 
 Not included: the stock recovery's saved logs that show the haptics probe succeeding in older sessions, and the full logs (they hold
 device identifiers). The explanation of each file is in [../docs/en/2-evidence.md](../docs/en/2-evidence.md).

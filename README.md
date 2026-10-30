@@ -12,7 +12,7 @@ and how to undo it. It is one case on one phone; read "Limits" before you copy a
 
 ## In short
 
-* **What was wrong.** The phone's I2C bus 3 stopped answering at about the time Android stopped booting, 19 October (a hardware fault;
+* **What was wrong.** The phone's I2C bus 3 stopped answering, by 2 October at the latest (judging by the camera's crash dumps), 17 days before Android stopped booting on 19 October (a hardware fault;
   the vibration-motor driver chip DRV2604 at address 0x5a and the LED-driver chip AW3644 at 0x63 sit on that bus). When its chip
   does not answer, the kernel's vendor haptics driver (`drv260x`) goes wrong in its error path: it frees device-managed memory by hand
   (KASAN: `double-free or invalid-free`) although the driver core frees it too, and it leaves a queued firmware load behind, which later
@@ -25,6 +25,11 @@ and how to undo it. It is one case on one phone; read "Limits" before you copy a
   flash and the torch on the power-management chip, not on the dead bus ([evidence](evidence/07-flash-is-on-the-pmic-not-on-the-bus.txt)). The AW3644 LED driver on the dead bus
   fails to start, as before; the parameter does not touch it. After a hardware repair, flash the original boot image back to get
   vibration again.
+* **The camera.** The same dead bus also kills the rear camera: every time one is opened, the camera driver writes the init settings of the
+  soft-flash chip (the AW3644) over that bus, the write fails, and the vendor camera software crashes. Making the kernel report that failed
+  write as a success (two instructions, [tools/patch_softflash.py](tools/patch_softflash.py)) brings the main camera back
+  ([docs/en/6-camera.md](docs/en/6-camera.md)). The front, macro and ultra-wide cameras are not found by the camera software; the bus does
+  not explain that, and it is not fixed.
 * **Evidence that it works.** On the one phone this was found on, Android started to the lock screen on the first try with every file
   intact (`fastboot boot`), and it kept starting after the image was flashed permanently.
 
@@ -49,7 +54,7 @@ pc : __kmalloc_track_caller+0xac/0x2e0
 ```
 
 Other signs: `bootloader,bootstrap-apexd-failed` as the last boot reason in `/metadata/bootstat/persist.sys.boot.reason`; `init: Exec service
-failed, status 25: Rebooting into recovery, reason: init_user0_failed`; a recovery that works one time in two. The kernel console of a
+failed, status 25: Rebooting into recovery, reason: init_user0_failed`; a recovery that works one time in two; a camera app that does not open ([docs/en/6-camera.md](docs/en/6-camera.md)). The kernel console of a
 crashed boot survives only after a *warm* reset: see [docs/en/5-method.md](docs/en/5-method.md). A different phone with a different driver
 can show the same family of symptoms; the method in that file is meant for that case.
 
@@ -74,9 +79,10 @@ fastboot flash boot boot-original.img # undo (after a hardware repair, or if you
 | [docs/en/3-root-cause.md](docs/en/3-root-cause.md) | The mechanism, what is certain and what is not, what to tell a repair shop |
 | [docs/en/4-fix.md](docs/en/4-fix.md) | The fix step by step, the undo, ROM updates |
 | [docs/en/5-method.md](docs/en/5-method.md) | How it was found, lessons, a checklist, FAQ |
-| `docs/fa/` | The same five documents in Persian |
+| [docs/en/6-camera.md](docs/en/6-camera.md) | The camera: why the rear camera died, the kernel workaround, the three cameras that are still missing |
+| `docs/fa/` | The same six documents in Persian |
 | [evidence/](evidence/) | Kernel console excerpts of the real boots (KASAN reports, the dead bus, the Android boot that died) |
-| [tools/](tools/) | `add_cmdline.py`, which makes the modified boot image and proves that nothing else changed |
+| [tools/](tools/) | `add_cmdline.py` and `patch_softflash.py`, which make the modified boot images and prove that nothing else changed |
 
 ## Limits
 
@@ -87,8 +93,11 @@ fastboot flash boot boot-original.img # undo (after a hardware repair, or if you
 * **The exact source line of the bad `kfree()` was not read.** The kernel's public repository has the plain TI driver at the commit that was
   checked, while the built-in driver is a Xiaomi variant (`HapticsFirmwareLoad`). KASAN named the place (`drv260x_probe+0x724`); the code
   was not seen.
+* **The camera is only partly repaired.** The main camera works with a workaround that hides a failed write; the front, macro and ultra-wide
+  cameras are not found by the camera software, and why is not known (hardware or the ROM's camera configuration), see
+  [docs/en/6-camera.md](docs/en/6-camera.md).
 * The modified image has no AVB footer. It needs an unlocked bootloader.
-* A ROM update replaces `boot` and brings the problem back until the parameter is applied to the new boot image.
+* A ROM update replaces `boot` and brings the problem back until the parameter (and the camera workaround) is applied to the new boot image.
 * Use at your own risk. Flashing a wrong image to `boot` can leave a phone unable to start; keep the original image and a copy of your data.
 
 ## Related

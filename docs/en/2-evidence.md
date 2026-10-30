@@ -124,10 +124,17 @@ ignores such a request and clears it (as TWRP-based recoveries do): see [4-fix.m
 
 The stock (ROM) recovery keeps its kernel logs of past sessions. In the oldest sessions the haptics probe succeeds
 (`Get drv260x status reg[0x01]=0x40`); from one session on, every session shows the I2C error. The recovery's clock read 1971, so
-those sessions cannot be dated; by their order, the change happened at about the time Android stopped booting (19 October). The five
-stock sessions after the change survived with the bug in them: that recovery allocates little, and only a boot that survives writes a log.
-(An old crash dump in the `minidump` partition shows the same `drv260x_input` driver working in the MIUI days.) These logs are not in this
-repository.
+those sessions cannot be dated. The five stock sessions after the change survived with the bug in them: that recovery allocates little,
+and only a boot that survives writes a log. (An old crash dump in the `minidump` partition shows the same `drv260x_input` driver working
+in the MIUI days.) These logs are not in this repository.
+
+What does date the bus is the camera ([6-camera.md](6-camera.md)). The phone keeps the crash dumps of the camera software, and the
+first crash with the signature of a failed write to the chip on this bus is from **2 October**
+([evidence/08](../../evidence/08-rear-camera-dies-on-the-soft-flash-write.txt), part C). So the bus was dead on 2 October at the latest (if that crash had the cause shown for 30 October, which the dumps alone
+do not prove), 17 days before Android stopped booting. An earlier version of this section said "at about the time Android stopped booting"; that was an
+inference from the order of the recovery sessions and it was wrong. Why the boot trouble started 17 days later is not shown. One
+possibility: the faulty driver runs only at boot, so a phone that is not restarted for weeks shows nothing until its first restart after
+the bus died.
 
 ## 6. The test that closed the case
 
@@ -135,6 +142,13 @@ repository.
 no queued firmware load. With it, `fastboot boot` of the ROM's own boot image started Android to the lock screen with the data intact, and
 the same image flashed to `boot` kept starting. A fix that removes the symptom by removing exactly the faulty component is stronger than
 any single log line, and that is the reason the cause chain is called confirmed here.
+
+## 7. The camera (30 October)
+
+The same bus kills the rear camera: every open of a rear camera writes to the soft-flash chip on it, the write fails and the closed
+camera HAL crashes in its error path ([evidence/08](../../evidence/08-rear-camera-dies-on-the-soft-flash-write.txt)). A kernel change that reports that failed write as a success
+brings the main camera back ([evidence/09](../../evidence/09-two-kernel-experiments-on-the-soft-flash.txt)). The front, macro and ultra-wide cameras are not found by the camera
+software ([evidence/10](../../evidence/10-cameras-that-are-not-found.txt)). Details, the tool and the limits are in [6-camera.md](6-camera.md).
 
 ## What the evidence does not show
 
@@ -146,4 +160,6 @@ any single log line, and that is the reason the cause chain is called confirmed 
 * **Whether the rear cameras and the extra "soft" flash LED work.** The phone's flash works (the owner's report). The camera sensors are on
   the camera control interface, not on bus 3, but the three rear ones list devices of bus 3 as a soft flash (evidence/07); whether a rear camera
   opens with the bus dead was not tested.
+* **Why the front, macro and ultra-wide cameras are not found.** The logs show three modules that do not answer and that the camera
+  software never knew (macro, ultra-wide) or no longer finds (front). Whether that is hardware or the ROM's camera configuration is open.
 * **That every phone with this symptom has this cause.** One phone, one dead bus.

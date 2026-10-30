@@ -25,7 +25,7 @@ Times are Iran time (UTC+3:30) unless noted. Dates are 2026.
 
 | Date | What was done | What it showed |
 |---|---|---|
-| 19 Oct | PixelOS 16.2 sideloaded twice (the same 2.88 GB zip) | No change. (Read much later in the stock recovery's saved logs: the haptics chip goes from answering to not answering somewhere in this period. Those logs have no usable dates, the recovery's clock read 1971.) |
+| 19 Oct | PixelOS 16.2 sideloaded twice (the same 2.88 GB zip) | No change. (Read much later in the stock recovery's saved logs: the haptics chip goes from answering to not answering somewhere in the history of those sessions. Those logs have no usable dates, the recovery's clock read 1971. The camera's crash dumps, read on 30 October, date the dead bus: 2 October at the latest.) |
 | 23-24 Oct | Built a custom OrangeFox recovery that can decrypt PixelOS's `/data`, to copy the files off | First boots: stuck on the logo, black screens, restarts into the installed system. The first reading was "the decryption chain hangs" (wrong, see below). |
 | 24-25 Oct | Kernel log (`pstore`) of a frozen boot | The "freezes" are kernel panics: a free-list pointer of a freed kernel object overwritten by garbage, found by the next allocation. Heap corruption, anywhere from 1.1 s to 24 s after the kernel starts. |
 | 25 Oct | Recovery build `r8` came up, decrypted `/data`, and `adb pull` copied the internal storage | **The data was safe on a PC before any repair was tried.** From here on the goal was repair without a factory reset. |
@@ -37,6 +37,9 @@ Times are Iran time (UTC+3:30) unless noted. Dates are 2026.
 | 27 Oct | Debug kernel (KASAN + SLUB debugging) booted instead | The first two KASAN reports of the whole case: a `double-free or invalid-free` inside `drv260x_probe`, then a use-after-free write from `HapticsFirmwareLoad` into the same object. The probe fails because the I2C bus does not answer. |
 | 27 Oct, afternoon | `fastboot boot` of the ROM's boot image with `initcall_blacklist=drv260x_driver_init` (after clearing the bootloader message, see [4-fix.md](4-fix.md)) | **Android started to the lock screen, data intact.** |
 | 27 Oct, later that afternoon | The same image flashed to `boot` | Still starts. Confirmed by the owner. |
+| 30 Oct | Android bugreports, taken because the camera app did not work | The rear camera dies on a write to the soft-flash chip on the dead bus, and the camera software then crashes in its error path. The crash dumps put the first such crash on 2 October. The front, macro and ultra-wide cameras are not found. ([6-camera.md](6-camera.md)) |
+| 30 Oct | `fastboot boot` of a kernel in which the soft flash is hidden | Does not help: the camera software needs the chip and aborts. |
+| 30 Oct | `fastboot boot` of a kernel in which the failed write counts as a success | **The main camera works.** The soft flash stays dead; the other three cameras are still missing. |
 
 ## Dead ends, and what ruled each one out
 

@@ -1,0 +1,85 @@
+## The camera modules that are not found. Kernel log, camera service and camera properties of the boot of experiment 2 (09), the first
+## start of the camera HAL after boot (about 9 to 30 s after the kernel starts), and the HAL's own record of the modules it identified.
+## Device tree (evidence/07 Part A): sensor cell 0 wide, 1 depth, 2 front, 3 macro (autofocus), 4 ultra-wide.
+##
+## Part A: the HAL probes the sensors. Slot 0 (IMX686, 0x686) and slot 1 (S5K5E9, 0x559b) answer. One more sensor, whose chip id should be
+## 0x1641, gets no acknowledge on the camera bus (NACK, then a 1.5 s timeout) and reads as 0. That this is the front sensor is an inference
+## (the HAL maps the driver toco_ov16a10_front, Part D; the log itself does not name it). The reads of the modules' EEPROMs fail the same way,
+## twelve times per start. No other sensor is probed: nothing in the kernel log concerns the macro or the ultra-wide module.
+[    9.395] CAM_INFO: CAM-SENSOR: cam_sensor_driver_cmd: 744 Probe success,slot:0,slave_addr:0x34,sensor_id:0x686
+[    9.920] CAM_ERR: CAM-CCI: cam_cci_irq: 228 Base:0000000000000000, M0 NACK ERROR: 0x10000000
+[   11.424] CAM_ERR: CAM-CCI: cam_cci_read_bytes: 1546 failed to read rc:-110
+[   11.424] CAM_ERR: CAM-SENSOR: cam_sensor_match_id: 651 chip id 0 does not match 1641
+[   11.457] CAM_ERR: CAM-CCI: cam_cci_irq: 228 Base:0000000000000000, M0 NACK ERROR: 0x10000000
+[   12.960] CAM_ERR: CAM-CCI: cam_cci_read_bytes: 1546 failed to read rc:-110
+[   12.960] CAM_ERR: CAM-EEPROM: cam_eeprom_read_memory: 144 read failed rc -110
+[   12.960] CAM_ERR: CAM-EEPROM: cam_eeprom_pkt_parse: 912 read_eeprom_memory failed
+[   12.964] CAM_ERR: CAM-CCI: cam_cci_irq: 228 Base:0000000000000000, M0 NACK ERROR: 0x10000000
+[   14.464] CAM_ERR: CAM-CCI: cam_cci_read_bytes: 1546 failed to read rc:-110
+[   14.464] CAM_ERR: CAM-EEPROM: cam_eeprom_read_memory: 144 read failed rc -110
+[   14.464] CAM_ERR: CAM-EEPROM: cam_eeprom_pkt_parse: 912 read_eeprom_memory failed
+[   14.469] CAM_ERR: CAM-CCI: cam_cci_irq: 228 Base:0000000000000000, M0 NACK ERROR: 0x10000000
+[   15.968] CAM_ERR: CAM-CCI: cam_cci_read_bytes: 1546 failed to read rc:-110
+[   29.885] CAM_INFO: CAM-SENSOR: cam_sensor_driver_cmd: 744 Probe success,slot:1,slave_addr:0x5a,sensor_id:0x559b
+
+## Part B: what the camera service has from the HAL: three devices, all facing back (no front camera, no macro, no ultra-wide).
+Number of camera devices: 3
+Number of normal camera devices: 1
+Number of public camera devices visible to API1: 1
+Device 0 maps to "0"
+device 0
+   Has a flash unit: true
+   Facing: Back
+   android.lens.info.availableApertures       [1.88999999 ]
+   android.lens.info.availableFocalLengths    [5.42999983 ]
+   android.sensor.info.pixelArraySize         [4624 3472 ]
+device 1
+   Has a flash unit: false
+   Facing: Back
+   android.lens.info.availableApertures       [2.40000010 ]
+   android.lens.info.availableFocalLengths    [1.94000006 ]
+   android.sensor.info.pixelArraySize         [2592 1944 ]
+device 2
+   Has a flash unit: true
+   Facing: Back
+   android.lens.info.availableApertures       [1.88999999 ]
+   android.lens.info.availableFocalLengths    [5.42999983 ]
+   android.sensor.info.pixelArraySize         [4624 3472 ]
+   android.logicalMultiCamera.physicalIds     [1 0 ]
+
+## Part C: the HAL's own record of the modules it identified (system properties; written by the vendor camera software).
+## back_camera and the first back_camera_aux are filled; front_camera and the two further back_camera_aux slots say none.
+[persist.vendor.camera.mi.module.info]: [back_camera=F4L_sunny_Sony_imx686_I;back_camera_aux=F4L_sunny_Samsung_s5k5e9_I;]
+[persist.vendor.camera.mi.module.infoext]: [front_camera=none;back_camera_aux=none;]
+[persist.vendor.camera.mi.module.infoext2]: [back_camera_aux=none;]
+
+## Part D: sensor driver libraries (com.qti.sensor.*) mapped by the camera provider in its crash dumps on the phone, by combination.
+## The macro and ultra-wide drivers are never among them, not even on 1 July; the front driver appears in the October dumps only.
+ 22 x 2026-07-01 .. 2026-10-30   toco_imx686_wide, toco_s5k5e9yx04_depth
+  6 x 2026-10-02 .. 2026-10-29   toco_imx686_wide, toco_ov16a10_front, toco_s5k5e9yx04_depth
+  1 x 2026-10-30 .. 2026-10-30   (none mapped)
+
+## Part E: a session that uses two sensors at once (the logical device 2: wide + depth). Both start; the receiver of the CSI interface then
+## reports errors on PHY 1, the PHY of the depth sensor (device tree: cell 1, csiphy-sd-index 1). The wide sensor alone (09) streams cleanly.
+[   97.326] CAM_INFO: CAM-SENSOR: cam_sensor_driver_cmd: 825 CAM_ACQUIRE_DEV Success, sensor_id:0x559b,sensor_slave_addr:0x5a
+[   97.356] CAM_INFO: CAM-SENSOR: cam_sensor_driver_cmd: 825 CAM_ACQUIRE_DEV Success, sensor_id:0x686,sensor_slave_addr:0x34
+[   97.462] CAM_INFO: CAM-SENSOR: cam_sensor_driver_cmd: 925 CAM_START_DEV Success, sensor_id:0x559b,sensor_slave_addr:0x5a
+[   97.490] CAM_INFO: CAM-SENSOR: cam_sensor_driver_cmd: 925 CAM_START_DEV Success, sensor_id:0x686,sensor_slave_addr:0x34
+[   97.530] CAM_ERR: CAM-ISP: cam_csid_event_dispatch_process: 3484 idx 1 err 5 phy 1 cnt 2
+[   97.530] CAM_ERR: CAM-ISP: cam_csid_event_dispatch_process: 3489 status TOP: 0
+[   97.530] CAM_ERR: CAM-ISP: cam_csid_event_dispatch_process: 3489 status RX: 8000
+[   97.530] CAM_ERR: CAM-ISP: cam_csid_event_dispatch_process: 3489 status IPP: 0
+[   97.530] CAM_ERR: CAM-ISP: cam_csid_event_dispatch_process: 3489 status PPP: 0
+[   97.530] CAM_ERR: CAM-ISP: cam_csid_event_dispatch_process: 3489 status RDI0: 0
+[   97.530] CAM_ERR: CAM-ISP: cam_csid_event_dispatch_process: 3489 status RDI1: 0
+[   97.530] CAM_ERR: CAM-ISP: cam_csid_event_dispatch_process: 3489 status RDI2: 0
+[   97.530] CAM_ERR: CAM-ISP: cam_csid_event_dispatch_process: 3489 status RDI3: 0
+[   97.530] CAM_ERR: CAM-ISP: cam_csid_event_dispatch_process: 3484 idx 1 err 5 phy 1 cnt 2
+[   97.530] CAM_ERR: CAM-ISP: cam_csid_event_dispatch_process: 3489 status TOP: 0
+[   97.530] CAM_ERR: CAM-ISP: cam_csid_event_dispatch_process: 3489 status RX: 108010
+[  101.180] CAM_INFO: CAM-SENSOR: cam_sensor_driver_cmd: 961 CAM_STOP_DEV Success, sensor_id:0x559b,sensor_slave_addr:0x5a
+[  101.207] CAM_INFO: CAM-SENSOR: cam_sensor_driver_cmd: 961 CAM_STOP_DEV Success, sensor_id:0x686,sensor_slave_addr:0x34
+[  101.536] CAM_INFO: CAM-SENSOR: cam_sensor_driver_cmd: 925 CAM_START_DEV Success, sensor_id:0x559b,sensor_slave_addr:0x5a
+[  101.555] CAM_INFO: CAM-SENSOR: cam_sensor_driver_cmd: 925 CAM_START_DEV Success, sensor_id:0x686,sensor_slave_addr:0x34
+[  101.596] CAM_ERR: CAM-ISP: cam_csid_event_dispatch_process: 3484 idx 1 err 5 phy 1 cnt 2
+[  101.596] CAM_ERR: CAM-ISP: cam_csid_event_dispatch_process: 3484 idx 1 err 5 phy 1 cnt 2

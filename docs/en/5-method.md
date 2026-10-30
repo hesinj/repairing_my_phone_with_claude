@@ -44,6 +44,10 @@
   boots it could see.
 * **Reading "decryption hangs" into the first log** because the log ended right after "Device ready for decryption". The recovery without
   any decryption failed as often.
+* **Fixing a symptom by removing the failing part.** The rear camera died on a write to the soft-flash chip, so the first idea was to make
+  the kernel report no soft flash. The camera software then aborted, because it requires the chip. The change that worked is the
+  opposite: leave the chip visible and let its failed write count as a success. Try one idea at a time with `fastboot boot`, and read the
+  log of the next failure ([6-camera.md](6-camera.md)).
 
 ## Checklist for a phone that will not boot (without wiping it)
 

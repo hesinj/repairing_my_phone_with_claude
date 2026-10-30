@@ -1,0 +1,41 @@
+## Two kernel experiments on the camera, each started with `fastboot boot` (nothing was written to the phone). Same Android, same camera app.
+##
+## Experiment 1: in the kernel the name of the device-tree property soft-led-flash-src was changed (one byte, s -> x), so that the three rear
+## sensors have no soft flash. The kernel log shows no 'FXF led flash cell index' lines at boot and no flash init at open: the experiment ran.
+## Result: it does not help. The camera software needs the soft flash for the main camera; without it the HAL aborts 0.5 s after the sensor
+## is acquired, in the step that creates the sub-modules of the sensor (five of five opens). Kernel log of the first open:
+[   41.579] CAM_INFO: CAM-SENSOR: cam_sensor_driver_cmd: 825 CAM_ACQUIRE_DEV Success, sensor_id:0x686,sensor_slave_addr:0x34
+[   42.137] CAM_ERR: CAM-CORE: cam_context_shutdown: 67 destroy device hdl failed for node cam-lrme
+[   42.178] CAM_ERR: CAM-CORE: cam_context_shutdown: 67 destroy device hdl failed for node cam-icp
+[   42.179] CAM_ERR: CAM-EEPROM: cam_eeprom_shutdown: 992 destroying the device hdl
+[   42.179] CAM_ERR: CAM-EEPROM: cam_eeprom_shutdown: 992 destroying the device hdl
+[   42.179] CAM_ERR: CAM-SENSOR: cam_sensor_shutdown: 610 dhdl already destroyed: rc = -22
+[   42.187] CAM_ERR: CAM-CORE: cam_context_shutdown: 67 destroy device hdl failed for node cam-isp
+
+## Backtrace of that abort (first of the five):
+F libc : Fatal signal 6 (SIGABRT), code -1 (SI_QUEUE) in tid 3771 (provider@2.4-se), pid 1066 (provider@2.4-se)
+F DEBUG: Executable: /vendor/bin/hw/android.hardware.camera.provider@2.4-service_64
+F DEBUG: Cmdline: /vendor/bin/hw/android.hardware.camera.provider@2.4-service_64
+F DEBUG: pid: 1066, tid: 3771, name: provider@2.4-se  >>> /vendor/bin/hw/android.hardware.camera.provider@2.4-service_64 <<<
+F DEBUG: signal 6 (SIGABRT), code -1 (SI_QUEUE), fault addr --------
+F DEBUG:       #00 pc 00000000000b7734  /apex/com.android.runtime/lib64/bionic/libc.so (raise+132) (BuildId: 24fa89a05fc029f3de5e5cf7d697509d)
+F DEBUG:       #01 pc 00000000005d8fd0  /vendor/lib64/hw/camera.qcom.so (CSLAcquireDeviceHW(int, int*, int, CSLDeviceResource*, unsigned long, CSLDeviceAttribute*, unsigned long)+1264) (BuildId: 827f5e18cdbdbe
+F DEBUG:       #02 pc 00000000005d3220  /vendor/lib64/hw/camera.qcom.so (CSLAcquireDevice+280) (BuildId: 827f5e18cdbdbe15128595ee5137c0d5)
+F DEBUG:       #03 pc 000000000048db64  /vendor/lib64/hw/camera.qcom.so (CamX::SensorNode::CreateSensorSubmodules()+11028) (BuildId: 827f5e18cdbdbe15128595ee5137c0d5)
+F DEBUG:       #04 pc 0000000000487b68  /vendor/lib64/hw/camera.qcom.so (CamX::SensorNode::SensorThreadJobCallback(void*)+1552) (BuildId: 827f5e18cdbdbe15128595ee5137c0d5)
+
+## Experiment 2: the soft flash stays visible, but in the two functions of the camera driver that write to a plain I2C device the result of
+## i2c_transfer() is replaced by 'success' (two instructions, see docs/en/6-camera.md). The write to 0x63 still fails on the bus (the
+## 'Bus arbitration lost' and 'failed' lines are still there; the function now returns 1, so it prints 'rc: 1'), but the camera carries on:
+## CAM_START_DEV succeeds, the stream runs for about seven seconds and ends with a normal stop and release. No camera-provider crash after
+## this boot.
+[   81.935] CAM_INFO: CAM-SENSOR: cam_sensor_driver_cmd: 825 CAM_ACQUIRE_DEV Success, sensor_id:0x686,sensor_slave_addr:0x34
+[   82.045] i2c_geni 890000.i2c: Bus arbitration lost, clock line undriveable
+[   82.045] CAM_ERR: CAM-SENSOR: cam_qup_i2c_txdata: 64 failed 0x63
+[   82.045] CAM_ERR: CAM-SENSOR: cam_qup_i2c_write: 323 failed rc: 1
+[   82.045] CAM_ERR: CAM-FLASH: cam_flash_i2c_apply_setting: 788 Failed to apply init settings: 1
+[   82.045] CAM_ERR: CAM-FLASH: cam_flash_i2c_pkt_parser: 1247 cannot apply settings rc = 1
+[   82.045] CAM_ERR: CAM-FLASH: cam_flash_driver_cmd: 200 Failed Flash Config: rc=1
+[   82.444] CAM_INFO: CAM-SENSOR: cam_sensor_driver_cmd: 925 CAM_START_DEV Success, sensor_id:0x686,sensor_slave_addr:0x34
+[   89.271] CAM_INFO: CAM-SENSOR: cam_sensor_driver_cmd: 961 CAM_STOP_DEV Success, sensor_id:0x686,sensor_slave_addr:0x34
+[   89.287] CAM_INFO: CAM-SENSOR: cam_sensor_driver_cmd: 875 CAM_RELEASE_DEV Success, sensor_id:0x686,sensor_slave_addr:0x34

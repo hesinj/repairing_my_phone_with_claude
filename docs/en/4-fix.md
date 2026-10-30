@@ -103,17 +103,20 @@ the same reason. The source tree of [hesinj/orangefox-toco](https://github.com/h
 fastboot flash boot boot-original.img
 ```
 
-After a hardware repair of the bus, flash the original and vibration can work again (and the AW3644 LED driver on the bus can start). Nothing else was changed.
+After a hardware repair of the bus, flash the original and vibration can work again (and the AW3644 LED driver on the bus can start). Nothing else was changed. If you also applied the camera workaround of
+[6-camera.md](6-camera.md), the original image removes that too.
 
 ## After a ROM update
 
 An OTA or a ROM zip replaces `boot` with the release's, and the problem returns until the parameter is applied to the **new** boot image.
 Before updating: keep the old `boot-original.img`; after: take the new release's boot image, run step 2 on it (check the symbol name in
-the new kernel), and flash it. A kernel that renames the init function makes the parameter do nothing, silently.
+the new kernel), and flash it. A kernel that renames the init function makes the parameter do nothing, silently. The camera workaround of [6-camera.md](6-camera.md)
+is in the same boot image and goes the same way: run `tools/patch_softflash.py` on the new image as well.
 
 ## What stops working
 
 * Haptic feedback and the vibration effects (they did not work while the chip was silent anyway).
+* The rear camera crashes while the bus is dead; it is repaired by a separate kernel workaround, [6-camera.md](6-camera.md).
 * Nothing else is known to stop working. The phone's flash works (the owner's report; the power-management chip drives it, see
   [2-evidence.md](2-evidence.md)). The AW3644 LED driver on the dead bus fails to start, as it did before the fix; the parameter does not touch it.
 
